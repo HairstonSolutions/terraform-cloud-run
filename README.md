@@ -1,44 +1,258 @@
-<p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/GoogleCloudPlatform/cloud-foundation-fabric/master/assets/logos/fabric-logo-colors-gray-800.png?v1">
-    <img src="https://raw.githubusercontent.com/GoogleCloudPlatform/cloud-foundation-fabric/master/assets/logos/fabric-logo-colors-800.png?v1" alt="Cloud Foundation Fabric">
-  </picture>
-</p>
+# Cloud Run Module
 
-# Terraform Examples and Modules for Google Cloud
+Cloud Run management, with support for IAM roles and optional Eventarc trigger creation.
 
-This repository provides **end-to-end blueprints** and a **suite of Terraform modules** for Google Cloud, which support different use cases:
+# Terraform modules suite for Google Cloud
 
-- organization-wide [landing zone blueprint](fast/) used to bootstrap real-world cloud foundations
-- reference [blueprints](./blueprints/) used to deep dive on network patterns or product features
-- a comprehensive source of lean [modules](./modules/) that lend themselves well to changes
+This Module tries to stay close to the low level provider resources they encapsulate.
 
-The whole repository is meant to be cloned as a single unit, and then forked into separate owned repositories to seed production usage, or used as-is and periodically updated as a complete toolkit for prototyping. You can read more on this approach in our [contributing guide](./CONTRIBUTING.md), and a comparison against similar toolkits [here](./FABRIC-AND-CFT.md).
+An interface that combines management of one resource or set or resources, and the corresponding IAM bindings.
 
-## Organization blueprint (Fabric FAST)
+Authoritative IAM bindings are primarily used so that each module is authoritative for specific roles on the resources
+it manages, and can neutralize or reconcile IAM changes made elsewhere.
 
-Setting up a production-ready GCP organization is often a time-consuming process. Fabric [FAST](fast/) aims to speed up this process via two complementary goals. On the one hand, FAST provides a design of a GCP organization that includes the typical elements required by enterprise customers. Secondly, we provide a reference implementation of the FAST design using Terraform.
+Specific modules also offer support for non-authoritative bindings, to allow granular permission management on resources
+that they don't manage directly.
 
-## Modules
+- Use GitHub sources with refs to reference the modules. See an example below:
 
-The suite of modules in this repository are designed for rapid composition and reuse, and to be reasonably simple and readable so that they can be forked and changed where use of third party code and sources is not allowed.
+    ```terraform
+    module "my_cloud_run_service" {
+        source              = "github.com/HairstonSolutions/terraform-cloud-run?ref=v1.0.0"
+        project             = "my-project"
+    }
+    ```
 
-All modules share a similar interface where each module tries to stay close to the underlying provider resources, support IAM together with resource creation and modification, offer the option of creating multiple resources where it makes sense (eg not for projects), and be completely free of side-effects (eg no external commands).
 
-The current list of modules supports most of the core foundational and networking components used to design end-to-end infrastructure, with more modules in active development for specialized compute, security, and data scenarios.
+## Examples
 
-Currently available modules:
+### Environment variables
 
-- **foundational** - [billing budget](./modules/billing-budget), [Cloud Identity group](./modules/cloud-identity-group/), [folder](./modules/folder), [service accounts](./modules/iam-service-account), [logging bucket](./modules/logging-bucket), [organization](./modules/organization), [project](./modules/project), [projects-data-source](./modules/projects-data-source)
-- **networking** - [DNS](./modules/dns), [Cloud Endpoints](./modules/endpoints), [address reservation](./modules/net-address), [NAT](./modules/net-cloudnat), [Global Load Balancer (classic)](./modules/net-glb/), [L4 ILB](./modules/net-ilb), [L7 ILB](./modules/net-ilb-l7), [VPC](./modules/net-vpc), [VPC firewall](./modules/net-vpc-firewall), [VPC peering](./modules/net-vpc-peering), [VPN dynamic](./modules/net-vpn-dynamic), [HA VPN](./modules/net-vpn-ha), [VPN static](./modules/net-vpn-static), [Service Directory](./modules/service-directory)
-- **compute** - [VM/VM group](./modules/compute-vm), [MIG](./modules/compute-mig), [COS container](./modules/cloud-config-container/cos-generic-metadata/) (coredns, mysql, onprem, squid), [GKE cluster](./modules/gke-cluster), [GKE hub](./modules/gke-hub), [GKE nodepool](./modules/gke-nodepool)
-- **data** - [BigQuery dataset](./modules/bigquery-dataset), [Bigtable instance](./modules/bigtable-instance), [Cloud SQL instance](./modules/cloudsql-instance), [Data Catalog Policy Tag](./modules/data-catalog-policy-tag), [Datafusion](./modules/datafusion), [GCS](./modules/gcs), [Pub/Sub](./modules/pubsub)
-- **development** - [API Gateway](./modules/api-gateway), [Apigee](./modules/apigee), [Artifact Registry](./modules/artifact-registry), [Container Registry](./modules/container-registry), [Cloud Source Repository](./modules/source-repository)
-- **security** - [Binauthz](./modules/binauthz/), [KMS](./modules/kms), [SecretManager](./modules/secret-manager), [VPC Service Control](./modules/vpc-sc)
-- **serverless** - [Cloud Function](./modules/cloud-function), [Cloud Run](./modules/cloud-run)
+This deploys a Cloud Run service and sets some environment variables.
 
-For more information and usage examples see each module's README file.
+```hcl
+module "cloud_run" {
+  source     = "github.com/HairstonSolutions/terraform-cloud-run"
+  project = "my-project"
+  name       = "hello"
+  containers = [{
+    image   = "us-docker.pkg.dev/cloudrun/container/hello"
+    options = {
+      command = null
+      args    = null
+      env     = {
+        "VAR1": "VALUE1",
+        "VAR2": "VALUE2",
+      }
+      env_from = null
+    }
+    resources = null
+    volume_mounts = null
+  }]
+}
+# tftest modules=1 resources=1
+```
 
-## End-to-end blueprints
+### Environment variables (value read from secret)
 
-The [blueprints](./blueprints/) in this repository are split in several main sections: **[networking blueprints](./blueprints/networking/)** that implement core patterns or features, **[data solutions blueprints](./blueprints/data-solutions/)** that demonstrate how to integrate data services in complete scenarios, **[cloud operations blueprints](./blueprints/cloud-operations/)** that leverage specific products to meet specific operational needs and **[factories](./blueprints/factories/)** that implement resource factories for the repetitive creation of specific resources, and finally **[GKE](./blueprints/gke)**, **[serverless](./blueprints/serverless)**, and **[third-party solutions](./blueprints/third-party-solutions/)** design blueprints.
+```hcl
+module "cloud_run" {
+  source     = "github.com/HairstonSolutions/terraform-cloud-run"
+  project    = "my-project"
+  name       = "hello"
+  containers = [{
+    image = "us-docker.pkg.dev/cloudrun/container/hello"
+    options = {
+      command   = null
+      args      = null
+      env       = null
+      env_from  = {
+        "CREDENTIALS": {
+          name = "credentials"
+          key = "1"
+        }
+      }
+    }
+    resources = null
+    volume_mounts = null
+  }]
+}
+# tftest modules=1 resources=1
+```
+
+### Secret mounted as volume
+
+```hcl
+module "cloud_run" {
+  source     = "github.com/HairstonSolutions/terraform-cloud-run"
+  project    = var.project
+  name       = "hello"
+  region     = var.region
+  revision_name = "green"
+  containers = [{
+    image         = "us-docker.pkg.dev/cloudrun/container/hello"
+    options       = null
+    resources     = null
+    volume_mounts = {
+      "credentials": "/credentials"
+    }
+  }]
+  volumes = [
+    {
+      name = "credentials"
+      secret_name = "credentials"
+      items = [{
+        key = "1"
+        path = "v1.txt"
+      }]
+    }
+  ]
+}
+# tftest modules=1 resources=1
+```
+
+### Traffic split
+
+This deploys a Cloud Run service with traffic split between two revisions.
+
+```hcl
+module "cloud_run" {
+  source     = "github.com/HairstonSolutions/terraform-cloud-run"
+  project    = "my-project"
+  name       = "hello"
+  revision_name = "green"
+  containers = [{
+    image         = "us-docker.pkg.dev/cloudrun/container/hello"
+    options       = null
+    resources     = null
+    volume_mounts = null
+  }]
+  traffic = {
+    "blue" = 25
+    "green" = 75
+  }
+}
+# tftest modules=1 resources=1
+```
+
+### Eventarc trigger (Pub/Sub)
+
+This deploys a Cloud Run service that will be triggered when messages are published to Pub/Sub topics.
+
+```hcl
+module "cloud_run" {
+  source     = "github.com/HairstonSolutions/terraform-cloud-run"
+  project    = "my-project"
+  name       = "hello"
+  containers = [{
+    image         = "us-docker.pkg.dev/cloudrun/container/hello"
+    options       = null
+    resources     = null
+    volume_mounts = null
+  }]
+  pubsub_triggers = [
+    "topic1",
+    "topic2"
+  ]
+}
+# tftest modules=1 resources=3
+```
+
+### Eventarc trigger (Audit logs)
+
+This deploys a Cloud Run service that will be triggered when specific log events are written to Google Cloud audit logs.
+
+```hcl
+module "cloud_run" {
+  source     = "github.com/HairstonSolutions/terraform-cloud-run"
+  project    = "my-project"
+  name       = "hello"
+  containers = [{
+    image         = "us-docker.pkg.dev/cloudrun/container/hello"
+    options       = null
+    resources     = null
+    volume_mounts = null
+  }]
+  audit_log_triggers = [
+    {
+      service_name  = "cloudresourcemanager.googleapis.com"
+      method_name   = "SetIamPolicy"
+    }
+  ]
+}
+# tftest modules=1 resources=2
+```
+
+### Service account management
+
+To use a custom service account managed by the module, set `service_account_create` to `true` and leave `service_account` set to `null` value (default).
+
+```hcl
+module "cloud_run" {
+  source     = "github.com/HairstonSolutions/terraform-cloud-run"
+  project    = "my-project"
+  name       = "hello"
+  containers = [{
+    image         = "us-docker.pkg.dev/cloudrun/container/hello"
+    options       = null
+    resources     = null
+    volume_mounts = null
+  }]
+  service_account_create = true
+}
+# tftest modules=1 resources=2
+```
+
+To use an externally managed service account, pass its email in `service_account` and leave `service_account_create` to `false` (the default).
+
+```hcl
+module "cloud_run" {
+  source     = "github.com/HairstonSolutions/terraform-cloud-run"
+  project    = "my-project"
+  name       = "hello"
+  containers = [{
+    image         = "us-docker.pkg.dev/cloudrun/container/hello"
+    options       = null
+    resources     = null
+    volume_mounts = null
+  }]
+  service_account = "cloud-run@my-project.iam.gserviceaccount.com"
+}
+# tftest modules=1 resources=1
+```
+<!-- BEGIN TFDOC -->
+
+## Variables
+
+| name | description                                                                                    | type | required | default |
+|---|------------------------------------------------------------------------------------------------|:---:|:---:|:---:|
+| [containers](variables.tf#L27) | Containers.                                                                                    | <code title="list&#40;object&#40;&#123;&#10;  image &#61; string&#10;  options &#61; object&#40;&#123;&#10;    command &#61; list&#40;string&#41;&#10;    args    &#61; list&#40;string&#41;&#10;    env     &#61; map&#40;string&#41;&#10;    env_from &#61; map&#40;object&#40;&#123;&#10;      key  &#61; string&#10;      name &#61; string&#10;    &#125;&#41;&#41;&#10;  &#125;&#41;&#10;  resources &#61; object&#40;&#123;&#10;    limits &#61; object&#40;&#123;&#10;      cpu    &#61; string&#10;      memory &#61; string&#10;    &#125;&#41;&#10;    requests &#61; object&#40;&#123;&#10;      cpu    &#61; string&#10;      memory &#61; string&#10;    &#125;&#41;&#10;  &#125;&#41;&#10;  ports &#61; list&#40;object&#40;&#123;&#10;    name           &#61; string&#10;    protocol       &#61; string&#10;    container_port &#61; string&#10;  &#125;&#41;&#41;&#10;  volume_mounts &#61; map&#40;string&#41;&#10;&#125;&#41;&#41;">list&#40;object&#40;&#123;&#8230;&#125;&#41;&#41;</code> | ✓ |  |
+| [name](variables.tf#L77) | Name used for cloud run service.                                                               | <code>string</code> | ✓ |  |
+| [project](variables.tf#L92) | Project name used for all resources.                                                           | <code>string</code> | ✓ |  |
+| [audit_log_triggers](variables.tf#L18) | Event arc triggers (Audit log).                                                                | <code title="list&#40;object&#40;&#123;&#10;  service_name &#61; string&#10;  method_name  &#61; string&#10;&#125;&#41;&#41;">list&#40;object&#40;&#123;&#8230;&#125;&#41;&#41;</code> |  | <code>null</code> |
+| [iam](variables.tf#L59) | IAM bindings for Cloud Run service in {ROLE => [MEMBERS]} format.                              | <code>map&#40;list&#40;string&#41;&#41;</code> |  | <code>&#123;&#125;</code> |
+| [ingress_settings](variables.tf#L65) | Ingress settings.                                                                              | <code>string</code> |  | <code>null</code> |
+| [labels](variables.tf#L71) | Resource labels.                                                                               | <code>map&#40;string&#41;</code> |  | <code>&#123;&#125;</code> |
+| [prefix](variables.tf#L82) | Optional prefix used for resource names.                                                       | <code>string</code> |  | <code>null</code> |
+| [pubsub_triggers](variables.tf#L97) | Eventarc triggers (Pub/Sub).                                                                   | <code>list&#40;string&#41;</code> |  | <code>null</code> |
+| [region](variables.tf#L103) | Region used for all resources.                                                                 | <code>string</code> |  | <code>&#34;europe-west1&#34;</code> |
+| [revision_annotations](variables.tf#L109) | Configure revision template annotations.                                                       | <code title="object&#40;&#123;&#10;  autoscaling &#61; object&#40;&#123;&#10;    max_scale &#61; number&#10;    min_scale &#61; number&#10;  &#125;&#41;&#10;  cloudsql_instances  &#61; list&#40;string&#41;&#10;  vpcaccess_connector &#61; string&#10;  vpcaccess_egress    &#61; string&#10;&#125;&#41;">object&#40;&#123;&#8230;&#125;&#41;</code> |  | <code>null</code> |
+| [revision_name](variables.tf#L123) | Revision name.                                                                                 | <code>string</code> |  | <code>null</code> |
+| [service_account](variables.tf#L129) | Service account email. Unused if service account is auto-created.                              | <code>string</code> |  | <code>null</code> |
+| [service_account_create](variables.tf#L135) | Auto-create service account.                                                                   | <code>bool</code> |  | <code>false</code> |
+| [traffic](variables.tf#L141) | Traffic.                                                                                       | <code>map&#40;number&#41;</code> |  | <code>null</code> |
+| [volumes](variables.tf#L147) | Volumes.                                                                                       | <code title="list&#40;object&#40;&#123;&#10;  name        &#61; string&#10;  secret_name &#61; string&#10;  items &#61; list&#40;object&#40;&#123;&#10;    key  &#61; string&#10;    path &#61; string&#10;  &#125;&#41;&#41;&#10;&#125;&#41;&#41;">list&#40;object&#40;&#123;&#8230;&#125;&#41;&#41;</code> |  | <code>null</code> |
+| [vpc_connector_create](variables.tf#L160) | Populate this to create a VPC connector. You can then refer to it in the template annotations. | <code title="object&#40;&#123;&#10;  ip_cidr_range &#61; string&#10;  name          &#61; string&#10;  vpc_self_link &#61; string&#10;&#125;&#41;">object&#40;&#123;&#8230;&#125;&#41;</code> |  | <code>null</code> |
+
+## Outputs
+
+| name | description | sensitive |
+|---|---|:---:|
+| [service](outputs.tf#L18) | Cloud Run service. |  |
+| [service_account](outputs.tf#L23) | Service account resource. |  |
+| [service_account_email](outputs.tf#L28) | Service account email. |  |
+| [service_account_iam_email](outputs.tf#L33) | Service account email. |  |
+| [service_name](outputs.tf#L41) | Cloud Run service name. |  |
+| [vpc_connector](outputs.tf#L47) | VPC connector resource if created. |  |
+
+<!-- END TFDOC -->
