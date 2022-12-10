@@ -48,3 +48,8 @@ output "vpc_connector" {
   description = "VPC connector resource if created."
   value       = try(google_vpc_access_connector.connector.0.id, null)
 }
+
+output "service_uri" {
+  description = "Cloud Run Secrets service."
+  value       = google_cloud_run_service.service.status[0].url
+}

@@ -246,13 +246,14 @@ module "cloud_run" {
 
 ## Outputs
 
-| name | description | sensitive |
-|---|---|:---:|
-| [service](outputs.tf#L18) | Cloud Run service. |  |
-| [service_account](outputs.tf#L23) | Service account resource. |  |
-| [service_account_email](outputs.tf#L28) | Service account email. |  |
-| [service_account_iam_email](outputs.tf#L33) | Service account email. |  |
-| [service_name](outputs.tf#L41) | Cloud Run service name. |  |
-| [vpc_connector](outputs.tf#L47) | VPC connector resource if created. |  |
+| name                                        | description                        | sensitive |
+|---------------------------------------------|------------------------------------|:---:|
+| [service](outputs.tf#L18)                   | Cloud Run service.                 |  |
+| [service_account](outputs.tf#L23)           | Service account resource.          |  |
+| [service_account_email](outputs.tf#L28)     | Service account email.             |  |
+| [service_account_iam_email](outputs.tf#L33) | Service account email.             |  |
+| [service_name](outputs.tf#L41)              | Cloud Run service name.            |  |
+| [vpc_connector](outputs.tf#L47)             | VPC connector resource if created. |  |
+| [service_uri](outputs.tf#L52)               | Cloud Run service URI.             |  |
 
 <!-- END TFDOC -->
